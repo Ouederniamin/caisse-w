@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { nom_complet, matricule_par_defaut, tolerance_caisses_mensuelle } = body;
+    const { nom_complet, matricule_par_defaut, poids_tare_vehicule, tolerance_caisses_mensuelle } = body;
 
     if (!nom_complet) {
       return NextResponse.json(
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       data: {
         nom_complet,
         matricule_par_defaut: matricule_par_defaut || null,
+        poids_tare_vehicule: poids_tare_vehicule || null,
         tolerance_caisses_mensuelle: tolerance_caisses_mensuelle || 0,
       },
     });

@@ -16,7 +16,8 @@ import {
   LayoutDashboard,
   UserCog,
   Moon,
-  Sun
+  Sun,
+  Banknote
 } from "lucide-react";
 import {
   Sidebar,
@@ -55,7 +56,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ user }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role?.toUpperCase() === "ADMIN";
   
   const menuItems = [
     {
@@ -74,6 +75,12 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       title: "Conflits",
       href: "/dashboard/conflits",
       icon: AlertCircle,
+      showForDirection: true,
+    },
+    {
+      title: "Finance",
+      href: "/dashboard/finance",
+      icon: Banknote,
       showForDirection: true,
     },
     {

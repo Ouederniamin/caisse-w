@@ -77,7 +77,7 @@ export function UsersClient({ users }: UsersClientProps) {
     },
     {
       label: "Administrateurs",
-      value: users.filter(u => u.role === "admin").length,
+      value: users.filter(u => u.role?.toUpperCase() === "ADMIN").length,
       icon: Shield,
       color: "bg-purple-500",
     },

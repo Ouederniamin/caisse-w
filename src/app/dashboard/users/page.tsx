@@ -23,7 +23,7 @@ export default async function UsersPage() {
     headers: await headers(),
   });
 
-  if (!session || session.user.role !== "admin") {
+  if (!session || session.user.role?.toUpperCase() !== "ADMIN") {
     redirect("/dashboard");
   }
 

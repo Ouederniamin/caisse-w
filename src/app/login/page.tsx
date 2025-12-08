@@ -126,12 +126,12 @@ export default function LoginPage() {
                   <div className="space-y-1 text-xs font-mono">
                     <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-gray-800/50 rounded">
                       <div>
-                        <span className="font-bold">Admin:</span> admin@test.com / admin123
+                        <span className="font-bold">Admin:</span> admin@caisse.tn / password123
                       </div>
                       <button
                         onClick={() => {
-                          setEmail("admin@test.com");
-                          setPassword("admin123");
+                          setEmail("admin@caisse.tn");
+                          setPassword("password123");
                           setShowDevCredentials(false);
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
@@ -141,12 +141,12 @@ export default function LoginPage() {
                     </div>
                     <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-gray-800/50 rounded">
                       <div>
-                        <span className="font-bold">Direction:</span> direction@test.com / direction123
+                        <span className="font-bold">Direction:</span> direction@caisse.tn / password123
                       </div>
                       <button
                         onClick={() => {
-                          setEmail("direction@test.com");
-                          setPassword("direction123");
+                          setEmail("direction@caisse.tn");
+                          setPassword("password123");
                           setShowDevCredentials(false);
                         }}
                         className="text-blue-600 dark:text-blue-400 hover:underline text-xs"

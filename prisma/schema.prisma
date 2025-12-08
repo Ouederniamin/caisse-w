@@ -103,6 +103,8 @@ model Driver {
   id                          String   @id @default(uuid())
   nom_complet                 String
   matricule_par_defaut        String?
+  marque_vehicule             String?
+  poids_tare_vehicule         Float?   // Default vehicle tare weight in kg
   tolerance_caisses_mensuelle Int      @default(0)
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
@@ -135,14 +137,14 @@ model Produit {
 model Tour {
   id String @id @default(uuid())
   
-  driverId String
-  driver   Driver @relation(fields: [driverId], references: [id])
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id])
 
-  secteurId String
-  secteur   Secteur @relation(fields: [secteurId], references: [id])
+  secteurId String?
+  secteur   Secteur? @relation(fields: [secteurId], references: [id])
 
-  agentControleId String
-  agentControle   User   @relation("AgentControle", fields: [agentControleId], references: [id])
+  agentControleId String?
+  agentControle   User?   @relation("AgentControle", fields: [agentControleId], references: [id])
 
   agentHygieneId String?
   agentHygiene   User?   @relation("AgentHygiene", fields: [agentHygieneId], references: [id])
@@ -177,6 +179,7 @@ model Tour {
 
   date_sortie_securite DateTime?
   date_entree_securite DateTime?
+  date_sortie_finale   DateTime? // When vehicle exits after TERMINEE
 
   statut TourStatus @default(PREPARATION)
 

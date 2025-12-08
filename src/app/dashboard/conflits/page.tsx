@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import MatriculeDisplay from "@/components/MatriculeDisplay";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ConflictActions } from "./conflict-actions";
 
 export default async function ConflitsPage() {
   // Fetch all conflicts with related tour and driver data
@@ -142,13 +143,13 @@ export default async function ConflitsPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         <span className="text-gray-700 dark:text-gray-300">
-                          <span className="font-semibold">Chauffeur:</span> {conflict.tour.driver.nom_complet}
+                          <span className="font-semibold">Chauffeur:</span> {conflict.tour.driver?.nom_complet || 'Non assigné'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <TruckIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                         <span className="text-gray-700 dark:text-gray-300">
-                          <span className="font-semibold">Tolérance:</span> {conflict.tour.driver.tolerance_caisses_mensuelle} caisses
+                          <span className="font-semibold">Tolérance:</span> {conflict.tour.driver?.tolerance_caisses_mensuelle ?? 0} caisses
                         </span>
                       </div>
                     </div>
@@ -168,16 +169,11 @@ export default async function ConflitsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approuver
-                    </Button>
-                    <Button size="sm" variant="destructive" className="flex-1">
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Rejeter
-                    </Button>
-                  </div>
+                  <ConflictActions
+                    conflictId={conflict.id}
+                    driverName={conflict.tour.driver?.nom_complet || 'Non assigné'}
+                    quantite={conflict.quantite_perdue}
+                  />
                 </div>
               ))}
             </div>
@@ -211,7 +207,7 @@ export default async function ConflitsPage() {
                         size="md"
                       />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {conflict.tour.driver.nom_complet}
+                        {conflict.tour.driver?.nom_complet || 'Non assigné'}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -257,7 +253,7 @@ export default async function ConflitsPage() {
                         size="md"
                       />
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {conflict.tour.driver.nom_complet}
+                        {conflict.tour.driver?.nom_complet || 'Non assigné'}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">

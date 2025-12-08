@@ -17,10 +17,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const isAdminOrDirection = session.user.role === "admin" || session.user.role === "direction";
+  const role = session.user.role?.toUpperCase();
+  const isAdminOrDirection = role === "ADMIN" || role === "DIRECTION";
   
   if (!isAdminOrDirection) {
-    redirect("/dashboard");
+    redirect("/unauthorized");
   }
 
   return (

@@ -68,13 +68,14 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { nom_complet, matricule_par_defaut, tolerance_caisses_mensuelle } = body;
+    const { nom_complet, matricule_par_defaut, poids_tare_vehicule, tolerance_caisses_mensuelle } = body;
 
     const driver = await prisma.driver.update({
       where: { id },
       data: {
         ...(nom_complet && { nom_complet }),
         ...(matricule_par_defaut !== undefined && { matricule_par_defaut }),
+        ...(poids_tare_vehicule !== undefined && { poids_tare_vehicule }),
         ...(tolerance_caisses_mensuelle !== undefined && { tolerance_caisses_mensuelle }),
       },
     });

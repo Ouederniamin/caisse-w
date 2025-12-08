@@ -35,6 +35,7 @@ interface Driver {
   id: string;
   nom_complet: string;
   matricule_par_defaut: string | null;
+  poids_tare_vehicule: number | null;
   tolerance_caisses_mensuelle: number;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +76,7 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
   const [newDriver, setNewDriver] = useState({
     nom_complet: "",
     matricule_par_defaut: "",
+    poids_tare_vehicule: "",
     tolerance_caisses_mensuelle: 0,
   });
 
@@ -133,10 +135,14 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
     setError(null);
 
     try {
+      const payload = {
+        ...newDriver,
+        poids_tare_vehicule: newDriver.poids_tare_vehicule ? parseFloat(newDriver.poids_tare_vehicule) : null,
+      };
       const response = await fetch("/api/drivers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newDriver),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -148,6 +154,7 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
       setNewDriver({
         nom_complet: "",
         matricule_par_defaut: "",
+        poids_tare_vehicule: "",
         tolerance_caisses_mensuelle: 0,
       });
       window.location.reload();
@@ -241,6 +248,26 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="poids_tare">Poids Tare Véhicule (kg)</Label>
+                <Input
+                  id="poids_tare"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Ex: 3500"
+                  value={newDriver.poids_tare_vehicule}
+                  onChange={(e) =>
+                    setNewDriver({
+                      ...newDriver,
+                      poids_tare_vehicule: e.target.value,
+                    })
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Poids à vide du véhicule pour validation des pesées
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="tolerance">Tolérance Caisses Mensuelle</Label>
                 <Input
                   id="tolerance"
@@ -322,9 +349,9 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                 <TableRow>
                   <TableHead>Nom Complet</TableHead>
                   <TableHead>Matricule</TableHead>
+                  <TableHead>Poids Tare</TableHead>
                   <TableHead>Tolérance</TableHead>
                   <TableHead>Tournées</TableHead>
-                  <TableHead>Date d'ajout</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -332,7 +359,7 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                 {filteredDrivers.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center text-muted-foreground py-8"
                     >
                       Aucun chauffeur trouvé
@@ -362,6 +389,15 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                         )}
                       </TableCell>
                       <TableCell>
+                        {driver.poids_tare_vehicule ? (
+                          <Badge variant="outline">
+                            {driver.poids_tare_vehicule.toLocaleString()} kg
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="secondary">
                           {driver.tolerance_caisses_mensuelle} caisses
                         </Badge>
@@ -371,11 +407,6 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                           <TruckIcon className="h-4 w-4 text-muted-foreground" />
                           <span>{driver._count.tours}</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(driver.createdAt), "dd MMM yyyy", {
-                          locale: fr,
-                        })}
                       </TableCell>
                       <TableCell>
                         <Button

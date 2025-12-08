@@ -11,10 +11,12 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // Redirect based on role
-  if (session.user.role === "admin") {
+  // Redirect based on role (case-insensitive check)
+  const role = session.user.role?.toUpperCase();
+  
+  if (role === "ADMIN") {
     redirect("/dashboard/admin");
-  } else if (session.user.role === "direction") {
+  } else if (role === "DIRECTION") {
     redirect("/dashboard/direction");
   }
 

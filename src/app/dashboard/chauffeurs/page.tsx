@@ -9,6 +9,7 @@ export default async function ChauffeursPage() {
         id: true,
         nom_complet: true,
         matricule_par_defaut: true,
+        poids_tare_vehicule: true,
         tolerance_caisses_mensuelle: true,
         createdAt: true,
         updatedAt: true,
