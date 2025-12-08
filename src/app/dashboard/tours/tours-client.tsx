@@ -26,8 +26,8 @@ type Tour = {
   nbre_caisses_retour: number | null;
   createdAt: string | Date;
   conflicts: { id: string }[];
-  driver: { nom_complet: string };
-  secteur: { nom: string };
+  driver: { nom_complet: string } | null;
+  secteur: { nom: string } | null;
 };
 
 interface ToursClientProps {
@@ -229,13 +229,13 @@ export function ToursClient({ tours }: ToursClientProps) {
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                             <span className="text-gray-700 dark:text-gray-300">
-                              {tour.driver.nom_complet}
+                              {tour.driver?.nom_complet || "N/A"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                             <span className="text-gray-700 dark:text-gray-300">
-                              {tour.secteur.nom}
+                              {tour.secteur?.nom || "N/A"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">

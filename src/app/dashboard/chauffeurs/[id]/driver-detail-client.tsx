@@ -44,7 +44,7 @@ interface Driver {
     createdAt: Date;
     secteur: {
       nom: string;
-    };
+    } | null;
     _count: {
       conflicts: number;
     };
@@ -243,7 +243,7 @@ export function DriverDetailClient({ driver }: DriverDetailClientProps) {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <MapPin className="h-3 w-3 text-muted-foreground" />
-                            <span className="text-sm">{tour.secteur.nom}</span>
+                            <span className="text-sm">{tour.secteur?.nom || "N/A"}</span>
                           </div>
                         </TableCell>
                         <TableCell>

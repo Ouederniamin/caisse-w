@@ -62,7 +62,7 @@ interface Conflict {
     driver: {
       id: string;
       nom_complet: string;
-    };
+    } | null;
   };
 }
 
@@ -243,7 +243,7 @@ export function FinanceClient({ summary, conflicts }: FinanceClientProps) {
                         {format(new Date(conflict.createdAt), "dd/MM/yyyy", { locale: fr })}
                       </TableCell>
                       <TableCell className="font-medium">
-                        {conflict.tour.driver.nom_complet}
+                        {conflict.tour.driver?.nom_complet || "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
                         {conflict.quantite_perdue} caisses
