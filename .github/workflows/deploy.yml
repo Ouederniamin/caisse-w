@@ -32,12 +32,48 @@ jobs:
       
       - name: Prepare standalone
         run: |
+          # Create the static directory in standalone
+          mkdir -p .next/standalone/.next
+          
+          # Copy static files - these are essential for CSS/JS/fonts
           cp -r .next/static .next/standalone/.next/static
-          cp -r public .next/standalone/public
+          
+          # Copy public folder
+          cp -r public .next/standalone/public || mkdir -p .next/standalone/public
+          
+          # Copy Prisma files
           mkdir -p .next/standalone/prisma
           cp prisma/schema.prisma .next/standalone/prisma/
-          cp -r node_modules/.prisma .next/standalone/node_modules/ || true
-          cp -r node_modules/@prisma .next/standalone/node_modules/ || true
+          mkdir -p .next/standalone/node_modules/.prisma
+          mkdir -p .next/standalone/node_modules/@prisma
+          cp -r node_modules/.prisma/* .next/standalone/node_modules/.prisma/ || true
+          cp -r node_modules/@prisma/* .next/standalone/node_modules/@prisma/ || true
+          
+          # Create startup script for Azure
+          echo 'const { execSync } = require("child_process");
+          const path = require("path");
+          process.env.PORT = process.env.PORT || 8080;
+          process.env.HOSTNAME = "0.0.0.0";
+          require("./server.js");' > .next/standalone/startup.js
+          
+          # Debug: List what we're deploying
+          echo "=== Standalone structure ==="
+          ls -la .next/standalone/
+          echo "=== .next folder ==="
+          ls -la .next/standalone/.next/
+          echo "=== Static folder ==="
+          ls -la .next/standalone/.next/static/ || echo "No static folder!"
+          ls -la .next/standalone/.next/static/chunks/ | head -20 || echo "No chunks!"
+      
+      - name: Create package.json for Azure
+        run: |
+          echo '{
+            "name": "caisse-web-app",
+            "version": "1.0.0",
+            "scripts": {
+              "start": "node server.js"
+            }
+          }' > .next/standalone/package.json
       
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
