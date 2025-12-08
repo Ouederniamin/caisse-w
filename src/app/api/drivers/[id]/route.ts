@@ -12,7 +12,8 @@ export async function DELETE(
       headers: await headers(),
     });
 
-    if (!session?.user || !["admin", "direction"].includes(session.user.role || "")) {
+    const role = session?.user?.role?.toUpperCase();
+    if (!session?.user || !["ADMIN", "DIRECTION"].includes(role || "")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -62,7 +63,8 @@ export async function PATCH(
       headers: await headers(),
     });
 
-    if (!session?.user || !["admin", "direction"].includes(session.user.role || "")) {
+    const role = session?.user?.role?.toUpperCase();
+    if (!session?.user || !["ADMIN", "DIRECTION"].includes(role || "")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

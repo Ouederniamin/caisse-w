@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
       headers: await headers(),
     });
 
-    if (!session?.user || !["admin", "direction"].includes(session.user.role || "")) {
+    const role = session?.user?.role?.toUpperCase();
+    if (!session?.user || !["ADMIN", "DIRECTION"].includes(role || "")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
