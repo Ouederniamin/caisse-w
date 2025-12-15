@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -25,9 +24,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Users, Search, Plus, Trash2, TruckIcon, Calendar, Shield, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+import { Users, Search, Plus, TruckIcon, Shield, AlertCircle, Eye, Scale, AlertTriangle } from "lucide-react";
 import MatriculeInput from "@/components/MatriculeInput";
 import MatriculeDisplay from "@/components/MatriculeDisplay";
 
@@ -46,26 +43,6 @@ interface Driver {
 
 interface ChauffeursClientProps {
   drivers: Driver[];
-}
-
-// Normalizes and formats the matricule consistently as: NNN تونس NNNN
-// Ensures visual order remains even with mixed LTR/RTL content by using unicode-bidi isolation.
-function formatMatricule(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-
-  // Remove the Arabic word if already present at either end to prevent duplication
-  const cleaned = raw.replace(/تونس/g, "");
-
-  // Extract digits only
-  const digits = cleaned.replace(/[^0-9]/g, "");
-  if (digits.length < 7) return raw; // Not enough digits to reliably format
-
-  const first = digits.slice(0, 3);
-  const last = digits.slice(-4);
-
-  // Use LRM marks to help keep ordering: \u200E (Left-to-Right Mark)
-  const LRM = '\u200E';
-  return `${LRM}${first} ${LRM}تونس ${LRM}${last}${LRM}`;
 }
 
 export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
@@ -94,8 +71,8 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
   const stats = useMemo(() => {
     const totalDrivers = drivers.length;
     const driversWithMatricule = drivers.filter((d) => d.matricule_par_defaut).length;
+    const driversWithTare = drivers.filter((d) => d.poids_tare_vehicule).length;
     const totalTours = drivers.reduce((sum, d) => sum + d._count.tours, 0);
-    const avgToursPerDriver = totalDrivers > 0 ? (totalTours / totalDrivers).toFixed(1) : "0";
 
     return [
       {
@@ -103,24 +80,29 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
         value: totalDrivers,
         icon: Users,
         color: "bg-blue-500",
+        borderColor: "border-l-blue-500",
       },
       {
         label: "Avec Matricule",
         value: driversWithMatricule,
         icon: Shield,
         color: "bg-green-500",
+        borderColor: "border-l-green-500",
+      },
+      {
+        label: "Avec Tare Configurée",
+        value: driversWithTare,
+        icon: Scale,
+        color: "bg-purple-500",
+        borderColor: "border-l-purple-500",
+        alert: driversWithTare < totalDrivers,
       },
       {
         label: "Total Tournées",
         value: totalTours,
         icon: TruckIcon,
-        color: "bg-purple-500",
-      },
-      {
-        label: "Moy. Tournées/Chauffeur",
-        value: avgToursPerDriver,
-        icon: Calendar,
         color: "bg-orange-500",
+        borderColor: "border-l-orange-500",
       },
     ];
   }, [drivers]);
@@ -160,33 +142,6 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
       window.location.reload();
     } catch (error: any) {
       setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteDriver = async (id: string, hasTours: boolean) => {
-    if (hasTours) {
-      alert("Impossible de supprimer un chauffeur avec des tourn\u00e9es existantes");
-      return;
-    }
-
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce chauffeur ?")) return;
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/drivers/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Erreur lors de la suppression");
-      }
-
-      window.location.reload();
-    } catch (error: any) {
-      alert(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -307,15 +262,21 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label}>
+            <Card key={stat.label} className={`border-none shadow-lg dark:bg-gray-800/50 border-l-4 ${stat.borderColor}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.label}</CardTitle>
                 <div className={`p-2 rounded-lg ${stat.color}`}>
                   <Icon className="h-4 w-4 text-white" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                {stat.alert && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Configuration incomplète
+                  </p>
+                )}
               </CardContent>
             </Card>
           );
@@ -323,10 +284,13 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
       </div>
 
       {/* Search and Filter */}
-      <Card>
+      <Card className="border-none shadow-lg dark:bg-gray-800/50">
         <CardHeader>
-          <CardTitle>Liste des Chauffeurs</CardTitle>
-          <CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Liste des Chauffeurs
+          </CardTitle>
+          <CardDescription className="dark:text-gray-400">
             {filteredDrivers.length} chauffeur(s) trouvé(s)
           </CardDescription>
         </CardHeader>
@@ -343,38 +307,34 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
             </div>
           </div>
 
-          <ScrollArea className="h-[500px]">
+          <div className="rounded-lg border dark:border-gray-700 overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nom Complet</TableHead>
-                  <TableHead>Matricule</TableHead>
-                  <TableHead>Poids Tare</TableHead>
-                  <TableHead>Tolérance</TableHead>
-                  <TableHead>Tournées</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableRow className="bg-gray-50 dark:bg-gray-800/80">
+                  <TableHead className="font-semibold dark:text-gray-200">Nom Complet</TableHead>
+                  <TableHead className="font-semibold dark:text-gray-200">Matricule</TableHead>
+                  <TableHead className="font-semibold dark:text-gray-200">Poids Tare</TableHead>
+                  <TableHead className="font-semibold dark:text-gray-200">Tolérance</TableHead>
+                  <TableHead className="text-center font-semibold dark:text-gray-200">Tournées</TableHead>
+                  <TableHead className="text-center font-semibold dark:text-gray-200">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDrivers.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
-                      className="text-center text-muted-foreground py-8"
+                      colSpan={6}
+                      className="text-center text-muted-foreground py-12"
                     >
-                      Aucun chauffeur trouvé
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p>Aucun chauffeur trouvé</p>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredDrivers.map((driver) => (
-                    <TableRow key={driver.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        <Link 
-                          href={`/dashboard/chauffeurs/${driver.id}`}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                        >
-                          {driver.nom_complet}
-                        </Link>
+                    <TableRow key={driver.id} className="dark:border-gray-700">
+                      <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                        {driver.nom_complet}
                       </TableCell>
                       <TableCell>
                         {driver.matricule_par_defaut ? (
@@ -383,18 +343,21 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                             size="sm"
                           />
                         ) : (
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">
                             Non défini
                           </span>
                         )}
                       </TableCell>
                       <TableCell>
                         {driver.poids_tare_vehicule ? (
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="font-mono">
                             {driver.poids_tare_vehicule.toLocaleString()} kg
                           </Badge>
                         ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Non configuré
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -402,23 +365,22 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                           {driver.tolerance_caisses_mensuelle} caisses
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <TruckIcon className="h-4 w-4 text-muted-foreground" />
-                          <span>{driver._count.tours}</span>
-                        </div>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">
+                          <TruckIcon className="h-3 w-3 mr-1" />
+                          {driver._count.tours}
+                        </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-center">
                         <Button
                           variant="ghost"
                           size="icon"
-                          disabled={driver._count.tours > 0 || isLoading}
-                          onClick={() => handleDeleteDriver(driver.id, driver._count.tours > 0)}
-                          title={driver._count.tours > 0 ? "Impossible de supprimer - a des tourn\u00e9es" : "Supprimer"}
+                          asChild
+                          title="Voir détails"
                         >
-                          <Trash2 className={`h-4 w-4 ${
-                            driver._count.tours > 0 ? "text-gray-400" : "text-red-600"
-                          }`} />
+                          <Link href={`/dashboard/chauffeurs/${driver.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -426,7 +388,7 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                 )}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </div>

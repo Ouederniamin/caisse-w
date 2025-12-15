@@ -12,7 +12,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TruckIcon, Package, Activity, CheckCircle, AlertCircle, MapPin, User, Calendar, Eye, Search, X } from "lucide-react";
+import { 
+  AlertCircle, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  DollarSign, 
+  TruckIcon, 
+  User, 
+  Calendar, 
+  Eye, 
+  Search, 
+  X,
+  AlertTriangle,
+  MapPin
+} from "lucide-react";
 import MatriculeDisplay from "@/components/MatriculeDisplay";
 import MatriculeInput from "@/components/MatriculeInput";
 import Link from "next/link";
@@ -20,146 +34,135 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const STATUS_ORDER = [
-  "PREPARATION",
-  "PRET_A_PARTIR",
-  "EN_TOURNEE",
-  "EN_ATTENTE_DECHARGEMENT",
-  "EN_ATTENTE_HYGIENE",
-  "TERMINEE",
+  "EN_ATTENTE",
+  "PAYEE",
+  "ANNULE",
 ] as const;
 
 type StatusKey = (typeof STATUS_ORDER)[number];
 
-type Tour = {
+type Conflict = {
   id: string;
+  tourId: string;
+  quantite_perdue: number;
+  montant_dette_tnd: number;
   statut: StatusKey;
-  matricule_vehicule: string;
-  nbre_caisses_depart: number;
-  nbre_caisses_retour: number | null;
+  notes_direction: string | null;
+  depasse_tolerance: boolean;
   createdAt: string | Date;
-  conflicts: { id: string }[];
-  driver: { nom_complet: string } | null;
-  secteur: { nom: string } | null;
+  tour: {
+    matricule_vehicule: string;
+    driver: { nom_complet: string; tolerance_caisses_mensuelle: number } | null;
+    secteur: { nom: string } | null;
+    agentControle: { name: string | null } | null;
+  };
 };
 
-interface ToursClientProps {
-  tours: Tour[];
+interface ConflitsClientProps {
+  conflicts: Conflict[];
 }
 
-export function ToursClient({ tours }: ToursClientProps) {
+export function ConflitsClient({ conflicts }: ConflitsClientProps) {
   const [selectedStatus, setSelectedStatus] = useState<StatusKey | "ALL">("ALL");
   const [matriculeSearch, setMatriculeSearch] = useState("");
 
   const statusConfig = useMemo(() => ({
-    PREPARATION: {
-      label: "Préparation",
-      color: "text-gray-700 dark:text-gray-300",
-      bgColor: "bg-gray-100 dark:bg-gray-700",
-      badgeColor: "bg-gray-500",
-      icon: Package,
-    },
-    PRET_A_PARTIR: {
-      label: "Prêt à partir",
-      color: "text-blue-700 dark:text-blue-300",
-      bgColor: "bg-blue-100 dark:bg-blue-900/30",
-      badgeColor: "bg-blue-500",
-      icon: TruckIcon,
-    },
-    EN_TOURNEE: {
-      label: "En tournée",
-      color: "text-purple-700 dark:text-purple-300",
-      bgColor: "bg-purple-100 dark:bg-purple-900/30",
-      badgeColor: "bg-purple-500",
-      icon: Activity,
-    },
-    EN_ATTENTE_DECHARGEMENT: {
-      label: "Attente déchargement",
+    EN_ATTENTE: {
+      label: "En attente",
       color: "text-orange-700 dark:text-orange-300",
       bgColor: "bg-orange-100 dark:bg-orange-900/30",
       badgeColor: "bg-orange-500",
-      icon: Package,
+      icon: Clock,
     },
-    EN_ATTENTE_HYGIENE: {
-      label: "Attente hygiène",
-      color: "text-yellow-700 dark:text-yellow-300",
-      bgColor: "bg-yellow-100 dark:bg-yellow-900/30",
-      badgeColor: "bg-yellow-500",
-      icon: AlertCircle,
-    },
-    TERMINEE: {
-      label: "Terminée",
+    PAYEE: {
+      label: "Payée",
       color: "text-green-700 dark:text-green-300",
       bgColor: "bg-green-100 dark:bg-green-900/30",
       badgeColor: "bg-green-500",
       icon: CheckCircle,
     },
+    ANNULE: {
+      label: "Annulé",
+      color: "text-red-700 dark:text-red-300",
+      bgColor: "bg-red-100 dark:bg-red-900/30",
+      badgeColor: "bg-red-500",
+      icon: XCircle,
+    },
   }), []);
 
-  // Count tours by status
+  // Count conflicts by status
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: tours.length };
+    const counts: Record<string, number> = { ALL: conflicts.length };
     STATUS_ORDER.forEach(status => {
-      counts[status] = tours.filter(t => t.statut === status).length;
+      counts[status] = conflicts.filter(c => c.statut === status).length;
     });
     return counts;
-  }, [tours]);
+  }, [conflicts]);
 
-  const stats = useMemo(() => [
-    {
-      label: "Total Tours",
-      value: tours.length,
-      icon: TruckIcon,
-      color: "bg-blue-500",
-    },
-    {
-      label: "En cours",
-      value: tours.filter(t => ['EN_TOURNEE', 'PRET_A_PARTIR'].includes(t.statut)).length,
-      icon: Activity,
-      color: "bg-purple-500",
-    },
-    {
-      label: "Terminées",
-      value: tours.filter(t => t.statut === 'TERMINEE').length,
-      icon: CheckCircle,
-      color: "bg-green-500",
-    },
-    {
-      label: "Avec conflits",
-      value: tours.filter(t => t.conflicts.length > 0).length,
-      icon: AlertCircle,
-      color: "bg-red-500",
-    },
-  ], [tours]);
+  // Calculate stats
+  const stats = useMemo(() => {
+    const pendingConflicts = conflicts.filter(c => c.statut === 'EN_ATTENTE');
+    const totalPerte = conflicts.reduce((sum, c) => sum + c.quantite_perdue, 0);
+    const totalMontant = conflicts.reduce((sum, c) => sum + c.montant_dette_tnd, 0);
+    const conflitsDepasses = conflicts.filter(c => c.depasse_tolerance).length;
 
-  // Filter tours based on selected status and matricule search
-  const filteredTours = useMemo(() => {
-    let filtered = tours;
+    return [
+      {
+        label: "Conflits totaux",
+        value: conflicts.length,
+        icon: AlertCircle,
+        color: "bg-red-500",
+      },
+      {
+        label: "En attente",
+        value: pendingConflicts.length,
+        icon: Clock,
+        color: "bg-orange-500",
+      },
+      {
+        label: "Perte totale",
+        value: `${totalPerte} caisses`,
+        icon: TruckIcon,
+        color: "bg-purple-500",
+      },
+      {
+        label: "Montant total",
+        value: `${totalMontant.toFixed(2)} TND`,
+        icon: DollarSign,
+        color: "bg-blue-500",
+      },
+    ];
+  }, [conflicts]);
+
+  // Filter conflicts based on selected status and matricule search
+  const filteredConflicts = useMemo(() => {
+    let filtered = conflicts;
     
     // Filter by status
     if (selectedStatus !== "ALL") {
-      filtered = filtered.filter(t => t.statut === selectedStatus);
+      filtered = filtered.filter(c => c.statut === selectedStatus);
     }
     
     // Filter by matricule search
     if (matriculeSearch.trim()) {
       const searchDigits = matriculeSearch.replace(/[^0-9]/g, '');
       if (searchDigits) {
-        filtered = filtered.filter(t => {
-          const tourDigits = t.matricule_vehicule.replace(/[^0-9]/g, '');
+        filtered = filtered.filter(c => {
+          const tourDigits = c.tour.matricule_vehicule.replace(/[^0-9]/g, '');
           return tourDigits.includes(searchDigits);
         });
       }
     }
     
     return filtered;
-  }, [tours, selectedStatus, matriculeSearch]);
+  }, [conflicts, selectedStatus, matriculeSearch]);
 
   const statusFilters = [
-    { key: "ALL" as const, label: "Tous", icon: TruckIcon, badgeColor: "bg-slate-500" },
+    { key: "ALL" as const, label: "Tous", icon: AlertCircle, badgeColor: "bg-slate-500" },
     ...STATUS_ORDER.map((key) => ({
       key,
       label: statusConfig[key]?.label ?? key,
-      icon: statusConfig[key]?.icon ?? Package,
+      icon: statusConfig[key]?.icon ?? AlertCircle,
       badgeColor: statusConfig[key]?.badgeColor ?? "bg-gray-500",
     })),
   ];
@@ -220,69 +223,69 @@ export function ToursClient({ tours }: ToursClientProps) {
           
           {/* Status Filter Bar */}
           <div className="flex flex-wrap gap-2 flex-1">
-          {statusFilters.map((filter) => {
-            const isActive = selectedStatus === filter.key;
-            const Icon = filter.icon;
-            const count = statusCounts[filter.key] || 0;
+            {statusFilters.map((filter) => {
+              const isActive = selectedStatus === filter.key;
+              const Icon = filter.icon;
+              const count = statusCounts[filter.key] || 0;
 
-            return (
-              <button
-                key={filter.key}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                  isActive 
-                    ? `${filter.badgeColor} text-white shadow-lg ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-${filter.badgeColor.replace('bg-', '')}/50` 
-                    : 'bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600/50 hover:shadow-sm'
-                }`}
-                onClick={() => setSelectedStatus(filter.key as StatusKey | "ALL")}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{filter.label}</span>
-                <span 
-                  className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+              return (
+                <button
+                  key={filter.key}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                     isActive 
-                      ? 'bg-white/25 text-white' 
-                      : `${filter.badgeColor} text-white`
+                      ? `${filter.badgeColor} text-white shadow-lg ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-${filter.badgeColor.replace('bg-', '')}/50` 
+                      : 'bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600/50 hover:shadow-sm'
                   }`}
+                  onClick={() => setSelectedStatus(filter.key as StatusKey | "ALL")}
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  <Icon className="h-4 w-4" />
+                  <span>{filter.label}</span>
+                  <span 
+                    className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                      isActive 
+                        ? 'bg-white/25 text-white' 
+                        : `${filter.badgeColor} text-white`
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </Card>
 
-      {/* Tours Table */}
+      {/* Conflicts Table */}
       <Card className="border-none shadow-lg dark:bg-gray-800/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TruckIcon className="h-5 w-5" />
-            Liste des Tournées
+            <AlertCircle className="h-5 w-5" />
+            Liste des Conflits
             <Badge variant="secondary" className="ml-2">
-              {filteredTours.length} tournée{filteredTours.length > 1 ? 's' : ''}
+              {filteredConflicts.length} conflit{filteredConflicts.length > 1 ? 's' : ''}
             </Badge>
           </CardTitle>
           <CardDescription className="dark:text-gray-400">
             {selectedStatus === "ALL" && !matriculeSearch
-              ? "Toutes les tournées" 
+              ? "Tous les conflits" 
               : selectedStatus === "ALL"
               ? `Recherche: ${matriculeSearch}`
               : matriculeSearch
               ? `${statusConfig[selectedStatus]?.label} • Recherche: ${matriculeSearch}`
-              : `Tournées en statut: ${statusConfig[selectedStatus]?.label}`
+              : `Conflits en statut: ${statusConfig[selectedStatus]?.label}`
             }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredTours.length === 0 ? (
+          {filteredConflicts.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Aucune tournée trouvée</p>
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Aucun conflit trouvé</p>
               <p className="text-sm mt-1">
                 {selectedStatus === "ALL" 
-                  ? "Il n'y a pas encore de tournées" 
-                  : "Aucune tournée avec ce statut"
+                  ? "Toutes les livraisons se déroulent sans incident" 
+                  : "Aucun conflit avec ce statut"
                 }
               </p>
             </div>
@@ -294,67 +297,53 @@ export function ToursClient({ tours }: ToursClientProps) {
                     <TableHead className="font-semibold text-gray-700 dark:text-gray-200">Matricule</TableHead>
                     <TableHead className="font-semibold text-gray-700 dark:text-gray-200">Chauffeur</TableHead>
                     <TableHead className="font-semibold text-gray-700 dark:text-gray-200">Secteur</TableHead>
-                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Caisses Départ</TableHead>
-                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Caisses Retour</TableHead>
+                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Perte</TableHead>
+                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Montant</TableHead>
                     <TableHead className="font-semibold text-gray-700 dark:text-gray-200">Statut</TableHead>
-                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Conflits</TableHead>
+                    <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Tolérance</TableHead>
                     <TableHead className="font-semibold text-gray-700 dark:text-gray-200">Date</TableHead>
                     <TableHead className="font-semibold text-center text-gray-700 dark:text-gray-200">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTours.map((tour) => {
-                    const config = statusConfig[tour.statut];
-                    const Icon = config?.icon ?? Package;
-                    const difference = tour.nbre_caisses_retour !== null 
-                      ? tour.nbre_caisses_depart - tour.nbre_caisses_retour 
-                      : null;
+                  {filteredConflicts.map((conflict) => {
+                    const config = statusConfig[conflict.statut];
+                    const Icon = config?.icon ?? AlertCircle;
 
                     return (
-                      <TableRow key={tour.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:border-gray-700">
+                      <TableRow key={conflict.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:border-gray-700">
                         <TableCell>
                           <MatriculeDisplay
-                            matricule={tour.matricule_vehicule}
+                            matricule={conflict.tour.matricule_vehicule}
                             size="sm"
                           />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <span className="font-medium text-gray-900 dark:text-gray-100">{tour.driver?.nom_complet || "N/A"}</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {conflict.tour.driver?.nom_complet || "N/A"}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <span className="text-gray-700 dark:text-gray-300">{tour.secteur?.nom || "N/A"}</span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {conflict.tour.secteur?.nom || "N/A"}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="outline" className="font-mono dark:border-gray-600 dark:text-gray-200">
-                            {tour.nbre_caisses_depart}
+                          <Badge variant="destructive" className="font-mono">
+                            -{conflict.quantite_perdue}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          {tour.nbre_caisses_retour !== null ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <Badge variant="outline" className="font-mono dark:border-gray-600 dark:text-gray-200">
-                                {tour.nbre_caisses_retour}
-                              </Badge>
-                              {difference !== null && difference > 0 && (
-                                <Badge variant="destructive" className="text-xs">
-                                  -{difference}
-                                </Badge>
-                              )}
-                              {difference !== null && difference < 0 && (
-                                <Badge className="bg-purple-500 text-white text-xs">
-                                  +{Math.abs(difference)}
-                                </Badge>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 dark:text-gray-500">—</span>
-                          )}
+                          <Badge variant="outline" className="font-mono text-blue-600 border-blue-300 dark:text-blue-400 dark:border-blue-700">
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            {conflict.montant_dette_tnd.toFixed(2)}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge className={`${config?.bgColor} ${config?.color} border-none`}>
@@ -363,27 +352,27 @@ export function ToursClient({ tours }: ToursClientProps) {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          {tour.conflicts.length > 0 ? (
-                            <Badge variant="destructive">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              {tour.conflicts.length}
+                          {conflict.depasse_tolerance ? (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Dépassée
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-green-600 border-green-300 dark:text-green-400 dark:border-green-700">
+                            <Badge variant="outline" className="text-green-600 border-green-300 dark:text-green-400 dark:border-green-700 text-xs">
                               <CheckCircle className="h-3 w-3 mr-1" />
-                              0
+                              OK
                             </Badge>
                           )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <Calendar className="h-4 w-4" />
-                            {format(new Date(tour.createdAt), "dd MMM yyyy", { locale: fr })}
+                            {format(new Date(conflict.createdAt), "dd MMM yyyy", { locale: fr })}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Button variant="ghost" size="sm" className="dark:text-gray-300 dark:hover:bg-gray-700" asChild>
-                            <Link href={`/dashboard/tours/${tour.id}`}>
+                            <Link href={`/dashboard/conflits/${conflict.id}`}>
                               <Eye className="h-4 w-4 mr-1" />
                               Voir
                             </Link>
