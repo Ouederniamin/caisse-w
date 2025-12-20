@@ -14,6 +14,22 @@ export default async function ConflictDetailPage({ params }: ConflictDetailPageP
   const conflict = await prisma.conflict.findUnique({
     where: { id },
     include: {
+      resolutions: {
+        select: {
+          id: true,
+          type: true,
+          quantite: true,
+          montant: true,
+          modePaiement: true,
+          createdAt: true,
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      },
       tour: {
         select: {
           id: true,

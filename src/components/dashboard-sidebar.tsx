@@ -17,7 +17,8 @@ import {
   UserCog,
   Moon,
   Sun,
-  Banknote
+  Banknote,
+  Boxes
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,6 +82,12 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       title: "Finance",
       href: "/dashboard/finance",
       icon: Banknote,
+      showForDirection: true,
+    },
+    {
+      title: "Stock Caisses",
+      href: "/dashboard/stock",
+      icon: Boxes,
       showForDirection: true,
     },
     {

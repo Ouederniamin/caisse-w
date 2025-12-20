@@ -35,6 +35,7 @@ import { fr } from "date-fns/locale";
 
 const STATUS_ORDER = [
   "EN_ATTENTE",
+  "RESOLUE",
   "PAYEE",
   "ANNULE",
 ] as const;
@@ -87,6 +88,13 @@ export function ConflitsClient({ conflicts }: ConflitsClientProps) {
       bgColor: "bg-red-100 dark:bg-red-900/30",
       badgeColor: "bg-red-500",
       icon: XCircle,
+    },
+    RESOLUE: {
+      label: "Résolu",
+      color: "text-green-700 dark:text-green-300",
+      bgColor: "bg-green-100 dark:bg-green-900/30",
+      badgeColor: "bg-green-500",
+      icon: CheckCircle,
     },
   }), []);
 

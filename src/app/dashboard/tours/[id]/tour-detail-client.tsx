@@ -55,7 +55,7 @@ type TourStatus =
   | "EN_ATTENTE_HYGIENE"
   | "TERMINEE";
 
-type ConflictStatus = "EN_ATTENTE" | "PAYEE" | "ANNULE";
+type ConflictStatus = "EN_ATTENTE" | "PAYEE" | "ANNULE" | "RESOLUE";
 
 interface Tour {
   id: string;
@@ -283,6 +283,7 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
     EN_ATTENTE: { label: "En attente", color: "bg-yellow-500" },
     PAYEE: { label: "Payée", color: "bg-green-500" },
     ANNULE: { label: "Annulé", color: "bg-gray-500" },
+    RESOLUE: { label: "Résolu", color: "bg-green-500" },
   };
 
   const config = statusConfig[tour.statut];

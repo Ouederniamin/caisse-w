@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -21,13 +24,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   AlertCircle, 
   Clock, 
   CheckCircle, 
-  XCircle, 
   DollarSign, 
   TruckIcon, 
   User, 
@@ -39,28 +47,43 @@ import {
   Scale,
   Loader2,
   FileText,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Banknote,
+  History,
+  ArrowUpCircle
 } from "lucide-react";
 import MatriculeDisplay from "@/components/MatriculeDisplay";
 import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { approveConflict, rejectConflict } from "../actions";
 import { useRouter } from "next/navigation";
 
-type ConflictStatus = "EN_ATTENTE" | "PAYEE" | "ANNULE";
+type ConflictStatus = "EN_ATTENTE" | "PAYEE" | "ANNULE" | "RESOLUE";
+
+interface Resolution {
+  id: string;
+  type: string;
+  quantite: number | null;
+  montant: number | null;
+  modePaiement: string | null;
+  createdAt: Date | string;
+  user: { name: string | null } | null;
+}
 
 interface Conflict {
   id: string;
   tourId: string;
   quantite_perdue: number;
   montant_dette_tnd: number;
+  caisses_retournees: number;
+  montant_paye: number;
   statut: ConflictStatus;
   notes_direction: string | null;
   depasse_tolerance: boolean;
   date_approbation_direction: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  resolutions?: Resolution[];
   tour: {
     id: string;
     matricule_vehicule: string;
@@ -101,104 +124,145 @@ interface ConflictDetailClientProps {
 
 const statusConfig = {
   EN_ATTENTE: {
-    label: "En attente",
+    label: "En attente de résolution",
     color: "text-orange-700 dark:text-orange-300",
     bgColor: "bg-orange-100 dark:bg-orange-900/30",
     borderColor: "border-orange-500",
     icon: Clock,
   },
   PAYEE: {
-    label: "Payée",
+    label: "Payée (ancien)",
     color: "text-green-700 dark:text-green-300",
     bgColor: "bg-green-100 dark:bg-green-900/30",
     borderColor: "border-green-500",
     icon: CheckCircle,
   },
   ANNULE: {
-    label: "Annulé",
-    color: "text-red-700 dark:text-red-300",
-    bgColor: "bg-red-100 dark:bg-red-900/30",
-    borderColor: "border-red-500",
-    icon: XCircle,
+    label: "Annulé (ancien)",
+    color: "text-gray-700 dark:text-gray-300",
+    bgColor: "bg-gray-100 dark:bg-gray-900/30",
+    borderColor: "border-gray-500",
+    icon: CheckCircle,
+  },
+  RESOLUE: {
+    label: "Résolu",
+    color: "text-green-700 dark:text-green-300",
+    bgColor: "bg-green-100 dark:bg-green-900/30",
+    borderColor: "border-green-500",
+    icon: CheckCircle,
   },
 };
 
+const PRIX_CAISSE_TND = 15;
+
 export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
-  const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectNotes, setRejectNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRetourModal, setShowRetourModal] = useState(false);
+  const [showPaiementModal, setShowPaiementModal] = useState(false);
+  const [retourQuantite, setRetourQuantite] = useState("");
+  const [paiementMontant, setPaiementMontant] = useState("");
+  const [modePaiement, setModePaiement] = useState<"ESPECES" | "RETENUE_SALAIRE">("ESPECES");
   const { toast } = useToast();
   const router = useRouter();
 
-  const config = statusConfig[conflict.statut];
+  const config = statusConfig[conflict.statut] || statusConfig.EN_ATTENTE;
   const StatusIcon = config.icon;
   const isPending = conflict.statut === "EN_ATTENTE";
 
-  const handleApprove = async () => {
-    setIsApproving(true);
-    try {
-      const result = await approveConflict(conflict.id);
-      if (result.success) {
-        toast({
-          title: "✅ Conflit approuvé",
-          description: `Le conflit a été approuvé avec succès.`,
-        });
-        router.refresh();
-      } else {
-        toast({
-          title: "Erreur",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    } catch {
+  // Calculate remaining amounts
+  const caissesRestantes = conflict.quantite_perdue - conflict.caisses_retournees;
+  const montantRestant = conflict.montant_dette_tnd - conflict.montant_paye;
+  const progressPct = conflict.quantite_perdue > 0 
+    ? ((conflict.caisses_retournees + (conflict.montant_paye / PRIX_CAISSE_TND)) / conflict.quantite_perdue) * 100
+    : 0;
+
+  // Calculate max values for inputs
+  const maxRetour = caissesRestantes;
+  const maxPaiement = Math.max(0, montantRestant);
+
+  const handleRetour = async () => {
+    const quantite = parseInt(retourQuantite);
+    if (isNaN(quantite) || quantite <= 0 || quantite > maxRetour) {
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue",
-        variant: "destructive",
-      });
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectNotes.trim()) {
-      toast({
-        title: "Note requise",
-        description: "Veuillez ajouter une note pour rejeter le conflit.",
+        description: `Quantité invalide. Max: ${maxRetour} caisses`,
         variant: "destructive",
       });
       return;
     }
 
-    setIsRejecting(true);
+    setIsSubmitting(true);
     try {
-      const result = await rejectConflict(conflict.id, rejectNotes);
-      if (result.success) {
-        toast({
-          title: "❌ Conflit rejeté",
-          description: `Le conflit a été rejeté.`,
-        });
-        setShowRejectDialog(false);
-        setRejectNotes("");
-        router.refresh();
-      } else {
-        toast({
-          title: "Erreur",
-          description: result.error,
-          variant: "destructive",
-        });
+      const res = await fetch(`/api/conflicts/${conflict.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "retour", quantite }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors de l'enregistrement");
       }
-    } catch {
+
+      const data = await res.json();
+      toast({
+        title: "✅ Retour enregistré",
+        description: `${quantite} caisses retournées. ${data.autoResolved ? "Conflit résolu!" : ""}`,
+      });
+      setShowRetourModal(false);
+      setRetourQuantite("");
+      router.refresh();
+    } catch (error: any) {
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setIsRejecting(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaiement = async () => {
+    const montant = parseFloat(paiementMontant);
+    if (isNaN(montant) || montant <= 0 || montant > maxPaiement + 0.01) {
+      toast({
+        title: "Erreur",
+        description: `Montant invalide. Max: ${maxPaiement.toFixed(2)} TND`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/conflicts/${conflict.id}/resolve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "paiement", montant, modePaiement }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors de l'enregistrement");
+      }
+
+      const data = await res.json();
+      toast({
+        title: "✅ Paiement enregistré",
+        description: `${montant.toFixed(2)} TND payés. ${data.autoResolved ? "Conflit résolu!" : ""}`,
+      });
+      setShowPaiementModal(false);
+      setPaiementMontant("");
+      router.refresh();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -249,6 +313,83 @@ export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
         </CardHeader>
       </Card>
 
+      {/* Resolution Progress Card - Only for pending conflicts */}
+      {isPending && (
+        <Card className="border-none shadow-lg dark:bg-gray-800/50 border-2 border-orange-300 dark:border-orange-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+              <AlertCircle className="h-5 w-5" />
+              État de Résolution
+            </CardTitle>
+            <CardDescription>
+              Progression vers la résolution complète du conflit
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Progression globale</span>
+                <span className="font-semibold">{Math.min(100, progressPct).toFixed(0)}%</span>
+              </div>
+              <Progress value={Math.min(100, progressPct)} className="h-3" />
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-2xl font-bold text-red-600">{conflict.quantite_perdue}</p>
+                <p className="text-xs text-muted-foreground">Caisses perdues</p>
+              </div>
+              <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">{conflict.caisses_retournees}</p>
+                <p className="text-xs text-muted-foreground">Retournées</p>
+              </div>
+              <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">{conflict.montant_paye.toFixed(0)}</p>
+                <p className="text-xs text-muted-foreground">TND payés</p>
+              </div>
+              <div className="text-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">{caissesRestantes}</p>
+                <p className="text-xs text-muted-foreground">À résoudre</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                size="lg"
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => setShowRetourModal(true)}
+                disabled={caissesRestantes <= 0}
+              >
+                <ArrowUpCircle className="h-5 w-5 mr-2" />
+                Enregistrer Retour
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowPaiementModal(true)}
+                disabled={montantRestant <= 0}
+              >
+                <Banknote className="h-5 w-5 mr-2" />
+                Enregistrer Paiement
+              </Button>
+            </div>
+
+            {/* Info message */}
+            <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+              <p className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Le conflit sera automatiquement résolu lorsque toutes les caisses seront 
+                retournées ou que le montant total sera payé (ou une combinaison des deux).
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-none shadow-lg dark:bg-gray-800/50">
@@ -275,6 +416,11 @@ export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
                 <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">
                   {conflict.montant_dette_tnd.toFixed(2)} <span className="text-lg">TND</span>
                 </p>
+                {conflict.montant_paye > 0 && (
+                  <p className="text-sm text-green-600">
+                    -{conflict.montant_paye.toFixed(2)} payés
+                  </p>
+                )}
               </div>
               <div className="p-3 rounded-xl bg-blue-500">
                 <DollarSign className="h-6 w-6 text-white" />
@@ -318,6 +464,66 @@ export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Resolution History */}
+      {conflict.resolutions && conflict.resolutions.length > 0 && (
+        <Card className="border-none shadow-lg dark:bg-gray-800/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Historique des Résolutions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-lg border dark:border-gray-700 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 dark:bg-gray-800/80">
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-center">Quantité</TableHead>
+                    <TableHead className="text-center">Montant</TableHead>
+                    <TableHead>Mode</TableHead>
+                    <TableHead>Utilisateur</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {conflict.resolutions.map((res) => (
+                    <TableRow key={res.id}>
+                      <TableCell>
+                        {format(new Date(res.createdAt), "dd/MM/yyyy HH:mm", { locale: fr })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={res.type === "RETOUR" ? "bg-green-500" : "bg-blue-500"}>
+                          {res.type === "RETOUR" ? (
+                            <><ArrowUpCircle className="h-3 w-3 mr-1" /> Retour</>
+                          ) : (
+                            <><Banknote className="h-3 w-3 mr-1" /> Paiement</>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-mono">
+                        {res.type === "RETOUR" ? `${res.quantite} caisses` : "—"}
+                      </TableCell>
+                      <TableCell className="text-center font-mono">
+                        {res.montant ? `${res.montant.toFixed(2)} TND` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {res.modePaiement === "ESPECES" ? (
+                          <Badge variant="outline">Espèces</Badge>
+                        ) : res.modePaiement === "RETENUE_SALAIRE" ? (
+                          <Badge variant="outline">Retenue salaire</Badge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>{res.user?.name || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Driver & Tour Info */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -477,79 +683,115 @@ export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
         </Card>
       )}
 
-      {/* Actions - Only for pending conflicts */}
-      {isPending && (
-        <Card className="border-none shadow-lg dark:bg-gray-800/50 border-2 border-orange-300 dark:border-orange-700">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-              <AlertCircle className="h-5 w-5" />
-              Actions Requises
-            </CardTitle>
-            <CardDescription className="dark:text-gray-400">
-              Ce conflit est en attente de votre décision
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button
-                size="lg"
-                className="flex-1 bg-green-600 hover:bg-green-700"
-                onClick={handleApprove}
-                disabled={isApproving}
-              >
-                {isApproving ? (
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-5 w-5 mr-2" />
-                )}
-                Approuver le conflit
-              </Button>
-              <Button
-                size="lg"
-                variant="destructive"
-                className="flex-1"
-                onClick={() => setShowRejectDialog(true)}
-                disabled={isRejecting}
-              >
-                <XCircle className="h-5 w-5 mr-2" />
-                Rejeter le conflit
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Reject Dialog */}
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+      {/* Retour Modal */}
+      <Dialog open={showRetourModal} onOpenChange={setShowRetourModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rejeter le conflit</DialogTitle>
+            <DialogTitle>Enregistrer un Retour de Caisses</DialogTitle>
             <DialogDescription>
-              Veuillez indiquer la raison du rejet pour le conflit de{" "}
-              {conflict.tour.driver?.nom_complet || "ce chauffeur"} ({conflict.quantite_perdue} caisses perdues).
+              Le chauffeur retourne des caisses manquantes.
+              Maximum: {maxRetour} caisses.
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            placeholder="Raison du rejet..."
-            value={rejectNotes}
-            onChange={(e) => setRejectNotes(e.target.value)}
-            className="min-h-[100px]"
-          />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="retour-quantite">Nombre de caisses retournées</Label>
+              <Input
+                id="retour-quantite"
+                type="number"
+                placeholder={`Max: ${maxRetour}`}
+                value={retourQuantite}
+                onChange={(e) => setRetourQuantite(e.target.value)}
+                min={1}
+                max={maxRetour}
+              />
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+              <p>Après ce retour:</p>
+              <ul className="list-disc list-inside mt-1 text-muted-foreground">
+                <li>Caisses restantes: {caissesRestantes - (parseInt(retourQuantite) || 0)}</li>
+                <li>Dette restante: {(montantRestant - (parseInt(retourQuantite) || 0) * PRIX_CAISSE_TND).toFixed(2)} TND</li>
+              </ul>
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
+            <Button variant="outline" onClick={() => setShowRetourModal(false)}>
               Annuler
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={isRejecting || !rejectNotes.trim()}
-            >
-              {isRejecting ? (
+            <Button onClick={handleRetour} disabled={isSubmitting}>
+              {isSubmitting ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <XCircle className="h-4 w-4 mr-2" />
+                <ArrowUpCircle className="h-4 w-4 mr-2" />
               )}
-              Confirmer le rejet
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Paiement Modal */}
+      <Dialog open={showPaiementModal} onOpenChange={setShowPaiementModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enregistrer un Paiement</DialogTitle>
+            <DialogDescription>
+              Le chauffeur paie pour les caisses manquantes.
+              Montant restant dû: {maxPaiement.toFixed(2)} TND
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="paiement-montant">Montant (TND)</Label>
+              <Input
+                id="paiement-montant"
+                type="number"
+                step="0.01"
+                placeholder={`Max: ${maxPaiement.toFixed(2)}`}
+                value={paiementMontant}
+                onChange={(e) => setPaiementMontant(e.target.value)}
+                min={0.01}
+                max={maxPaiement}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mode de paiement</Label>
+              <Select value={modePaiement} onValueChange={(v) => setModePaiement(v as "ESPECES" | "RETENUE_SALAIRE")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ESPECES">
+                    <span className="flex items-center gap-2">
+                      <Banknote className="h-4 w-4" /> Espèces
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="RETENUE_SALAIRE">
+                    <span className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" /> Retenue sur salaire
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm">
+              <p>Ce paiement couvre environ <strong>{Math.floor((parseFloat(paiementMontant) || 0) / PRIX_CAISSE_TND)}</strong> caisses</p>
+              <p className="text-muted-foreground mt-1">
+                (Prix par caisse: {PRIX_CAISSE_TND} TND)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaiementModal(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handlePaiement} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Banknote className="h-4 w-4 mr-2" />
+              )}
+              Enregistrer
             </Button>
           </DialogFooter>
         </DialogContent>
