@@ -68,15 +68,20 @@ const COLORS = {
   purple: "#8b5cf6",
   orange: "#f97316",
   gray: "#6b7280",
+  amber: "#f59e0b",
+  violet: "#7c3aed",
+  teal: "#14b8a6",
 };
 
 export function AdminClient({ stats }: AdminClientProps) {
   const statusConfig = useMemo(
     () => ({
-      PREPARATION: { label: "Préparation", color: COLORS.gray },
+      PESEE_VIDE: { label: "Pesée à vide", color: COLORS.gray },
+      EN_CHARGEMENT: { label: "En chargement", color: COLORS.amber },
       PRET_A_PARTIR: { label: "Prêt à partir", color: COLORS.blue },
       EN_TOURNEE: { label: "En tournée", color: COLORS.purple },
-      EN_ATTENTE_DECHARGEMENT: { label: "Attente déchargement", color: COLORS.orange },
+      RETOUR: { label: "Retour usine", color: COLORS.violet },
+      EN_ATTENTE_DECHARGEMENT: { label: "Déchargé", color: COLORS.teal },
       EN_ATTENTE_HYGIENE: { label: "Attente hygiène", color: COLORS.yellow },
       TERMINEE: { label: "Terminée", color: COLORS.green },
     }),

@@ -78,11 +78,13 @@ export function DirectionClient({ tours, conflicts, driverCount, secteurCount }:
 
   const statusConfig = useMemo(
     () => ({
-      PREPARATION: { label: "Préparation", color: "#6b7280" },
+      PESEE_VIDE: { label: "Pesée à vide", color: "#6b7280" },
+      EN_CHARGEMENT: { label: "En chargement", color: "#f59e0b" },
       PRET_A_PARTIR: { label: "Prêt à partir", color: "#3b82f6" },
-      EN_TOURNEE: { label: "En tournée", color: "#10b981" },
-      EN_ATTENTE_DECHARGEMENT: { label: "En attente déchargement", color: "#f59e0b" },
-      EN_ATTENTE_HYGIENE: { label: "En attente hygiène", color: "#8b5cf6" },
+      EN_TOURNEE: { label: "En tournée", color: "#8b5cf6" },
+      RETOUR: { label: "Retour usine", color: "#7c3aed" },
+      EN_ATTENTE_DECHARGEMENT: { label: "Déchargé", color: "#14b8a6" },
+      EN_ATTENTE_HYGIENE: { label: "Attente hygiène", color: "#eab308" },
       TERMINEE: { label: "Terminée", color: "#22c55e" },
     }),
     []
@@ -90,7 +92,7 @@ export function DirectionClient({ tours, conflicts, driverCount, secteurCount }:
 
   const statusData = useMemo(() => {
     const counts = tours.reduce((acc: any, tour) => {
-      const status = tour.statut || "PREPARATION";
+      const status = tour.statut || "PESEE_VIDE";
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});

@@ -19,7 +19,6 @@ import {
   Sun,
   Banknote,
   Boxes,
-  History
 } from "lucide-react";
 import {
   Sidebar,
@@ -89,12 +88,6 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       title: "Stock Caisses",
       href: "/dashboard/stock",
       icon: Boxes,
-      showForDirection: true,
-    },
-    {
-      title: "Traçabilité",
-      href: "/dashboard/tracabilite",
-      icon: History,
       showForDirection: true,
     },
     {

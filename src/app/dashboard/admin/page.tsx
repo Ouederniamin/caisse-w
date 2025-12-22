@@ -84,12 +84,14 @@ export default async function AdminDashboardPage() {
 
   // Tours by status
   const STATUS_CONFIG = {
-    PREPARATION: { label: "Préparation", color: "#6b7280" },
+    PESEE_VIDE: { label: "Pesée à vide", color: "#6b7280" },
+    EN_CHARGEMENT: { label: "En chargement", color: "#f59e0b" },
     PRET_A_PARTIR: { label: "Prêt à partir", color: "#3b82f6" },
     EN_TOURNEE: { label: "En tournée", color: "#8b5cf6" },
-    EN_ATTENTE_DECHARGEMENT: { label: "Attente déchargement", color: "#f97316" },
-    EN_ATTENTE_HYGIENE: { label: "Attente hygiène", color: "#f59e0b" },
-    TERMINEE: { label: "Terminée", color: "#10b981" },
+    RETOUR: { label: "Retour usine", color: "#7c3aed" },
+    EN_ATTENTE_DECHARGEMENT: { label: "Déchargé", color: "#14b8a6" },
+    EN_ATTENTE_HYGIENE: { label: "Attente hygiène", color: "#eab308" },
+    TERMINEE: { label: "Terminée", color: "#22c55e" },
   };
 
   const toursByStatus = Object.entries(STATUS_CONFIG).map(([status, config]) => ({

@@ -114,12 +114,14 @@ export function DriverDetailClient({ driver, stats }: DriverDetailClientProps) {
   });
 
   const statusConfig: Record<string, { label: string; color: string; bgColor: string; icon: React.ElementType }> = {
-    PREPARATION: { label: "Préparation", color: "text-gray-700 dark:text-gray-300", bgColor: "bg-gray-100 dark:bg-gray-800", icon: Package },
-    PRET_A_PARTIR: { label: "Prêt", color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: CheckCircle2 },
-    EN_TOURNEE: { label: "En tournée", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-100 dark:bg-green-900/30", icon: TruckIcon },
-    EN_ATTENTE_DECHARGEMENT: { label: "Déchargement", color: "text-orange-700 dark:text-orange-300", bgColor: "bg-orange-100 dark:bg-orange-900/30", icon: Clock },
-    EN_ATTENTE_HYGIENE: { label: "Hygiène", color: "text-purple-700 dark:text-purple-300", bgColor: "bg-purple-100 dark:bg-purple-900/30", icon: Clock },
-    TERMINEE: { label: "Terminée", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-100 dark:bg-emerald-900/30", icon: CheckCircle2 },
+    PESEE_VIDE: { label: "Pesée à vide", color: "text-gray-700 dark:text-gray-300", bgColor: "bg-gray-100 dark:bg-gray-800", icon: Package },
+    EN_CHARGEMENT: { label: "En chargement", color: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-100 dark:bg-amber-900/30", icon: Package },
+    PRET_A_PARTIR: { label: "Prêt à partir", color: "text-blue-700 dark:text-blue-300", bgColor: "bg-blue-100 dark:bg-blue-900/30", icon: Package },
+    EN_TOURNEE: { label: "En tournée", color: "text-purple-700 dark:text-purple-300", bgColor: "bg-purple-100 dark:bg-purple-900/30", icon: TruckIcon },
+    RETOUR: { label: "Retour usine", color: "text-violet-700 dark:text-violet-300", bgColor: "bg-violet-100 dark:bg-violet-900/30", icon: TruckIcon },
+    EN_ATTENTE_DECHARGEMENT: { label: "Déchargé", color: "text-teal-700 dark:text-teal-300", bgColor: "bg-teal-100 dark:bg-teal-900/30", icon: Package },
+    EN_ATTENTE_HYGIENE: { label: "Attente hygiène", color: "text-yellow-700 dark:text-yellow-300", bgColor: "bg-yellow-100 dark:bg-yellow-900/30", icon: AlertCircle },
+    TERMINEE: { label: "Terminée", color: "text-green-700 dark:text-green-300", bgColor: "bg-green-100 dark:bg-green-900/30", icon: CheckCircle2 },
   };
 
   const recentTours = useMemo(() => driver.tours.slice(0, 20), [driver.tours]);
@@ -379,7 +381,7 @@ export function DriverDetailClient({ driver, stats }: DriverDetailClientProps) {
                   </TableHeader>
                   <TableBody>
                     {recentTours.map((tour) => {
-                      const statusInfo = statusConfig[tour.statut] || statusConfig.PREPARATION;
+                      const statusInfo = statusConfig[tour.statut] || statusConfig.PESEE_VIDE;
                       const StatusIcon = statusInfo.icon;
                       const caissesPerdues = tour.nbre_caisses_depart - (tour.nbre_caisses_retour || 0);
                       const hasConflicts = tour.conflicts.length > 0;

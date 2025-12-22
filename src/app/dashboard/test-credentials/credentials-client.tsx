@@ -72,7 +72,7 @@ export function CredentialsClient({ user }: CredentialsClientProps) {
       description: "Pesée des véhicules à l'entrée et sortie du site",
       color: "bg-orange-500",
       icon: Shield,
-      permissions: ["Pesée sortie", "Pesée entrée", "Vérification matricule", "Enregistrer poids"],
+      permissions: ["Pesée à vide", "Pesée sortie", "Marquer retour", "Vérification matricule"],
     },
     {
       email: "direction@caisse.tn",
@@ -98,12 +98,11 @@ export function CredentialsClient({ user }: CredentialsClientProps) {
 
         <Alert variant="destructive">
           <AlertTriangle className="h-5 w-5" />
-          <AlertTitle className="text-lg font-semibold">⚠️ Mode Développement Uniquement</AlertTitle>
+          <AlertTitle className="text-lg font-semibold">⚠️ Mode Test Uniquement</AlertTitle>
           <AlertDescription className="text-sm">
-            Ces identifiants sont destinés au développement et aux tests uniquement.
+            Ces identifiants sont destinés aux tests uniquement.
             <br />
-            <strong>En production</strong>, tous les mots de passe doivent être hashés avec bcrypt/argon2 et
-            jamais affichés en clair.
+            <strong>En production</strong>, des mots de passe sécurisés seront utilisés.
           </AlertDescription>
         </Alert>
       </div>
@@ -120,9 +119,9 @@ export function CredentialsClient({ user }: CredentialsClientProps) {
                   <Monitor className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Dashboard Web (Next.js)</CardTitle>
+                  <CardTitle className="text-xl">Dashboard Web</CardTitle>
                   <CardDescription className="text-sm">
-                    Identifiants pour accéder au dashboard administratif
+                    Identifiants pour accéder au tableau de bord
                   </CardDescription>
                 </div>
               </div>
@@ -182,35 +181,35 @@ export function CredentialsClient({ user }: CredentialsClientProps) {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  ✅ Mots de passe hashés avec <strong>BetterAuth (bcrypt)</strong>
+                  ✅ Accès sécurisé pour Direction et Admin
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-yellow-200 dark:border-yellow-800">
+            <Card className="border-blue-200 dark:border-blue-800">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                  <CardTitle className="text-base">Mobile Backend</CardTitle>
+                  <Smartphone className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="text-base">Application Mobile</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  ⚠️ Stockage en clair en <strong>développement</strong> (à sécuriser)
+                  📱 Accès pour agents terrain (Contrôle, Hygiène, Sécurité)
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-red-200 dark:border-red-800">
+            <Card className="border-purple-200 dark:border-purple-800">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-red-600" />
-                  <CardTitle className="text-base">Production</CardTitle>
+                  <Key className="h-4 w-4 text-purple-600" />
+                  <CardTitle className="text-base">Mot de passe</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  🔒 Hasher avec <strong>bcrypt/argon2</strong> obligatoire
+                  🔑 Tous les comptes: <strong>password123</strong>
                 </p>
               </CardContent>
             </Card>
@@ -227,9 +226,9 @@ export function CredentialsClient({ user }: CredentialsClientProps) {
                   <Smartphone className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Application Mobile (Expo)</CardTitle>
+                  <CardTitle className="text-xl">Application Mobile</CardTitle>
                   <CardDescription className="text-sm">
-                    Identifiants pour tester tous les rôles de l'application mobile
+                    Identifiants pour accéder à l'application mobile
                   </CardDescription>
                 </div>
               </div>

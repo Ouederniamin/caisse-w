@@ -20,9 +20,11 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 const STATUS_ORDER = [
-  "PREPARATION",
+  "PESEE_VIDE",
+  "EN_CHARGEMENT",
   "PRET_A_PARTIR",
   "EN_TOURNEE",
+  "RETOUR",
   "EN_ATTENTE_DECHARGEMENT",
   "EN_ATTENTE_HYGIENE",
   "TERMINEE",
@@ -51,11 +53,18 @@ export function ToursClient({ tours }: ToursClientProps) {
   const [matriculeSearch, setMatriculeSearch] = useState("");
 
   const statusConfig = useMemo(() => ({
-    PREPARATION: {
-      label: "Préparation",
+    PESEE_VIDE: {
+      label: "Pesée à vide",
       color: "text-gray-700 dark:text-gray-300",
       bgColor: "bg-gray-100 dark:bg-gray-700",
       badgeColor: "bg-gray-500",
+      icon: Package,
+    },
+    EN_CHARGEMENT: {
+      label: "En chargement",
+      color: "text-amber-700 dark:text-amber-300",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
+      badgeColor: "bg-amber-500",
       icon: Package,
     },
     PRET_A_PARTIR: {
@@ -72,11 +81,18 @@ export function ToursClient({ tours }: ToursClientProps) {
       badgeColor: "bg-purple-500",
       icon: Activity,
     },
+    RETOUR: {
+      label: "Retour usine",
+      color: "text-violet-700 dark:text-violet-300",
+      bgColor: "bg-violet-100 dark:bg-violet-900/30",
+      badgeColor: "bg-violet-500",
+      icon: TruckIcon,
+    },
     EN_ATTENTE_DECHARGEMENT: {
-      label: "Attente déchargement",
-      color: "text-orange-700 dark:text-orange-300",
-      bgColor: "bg-orange-100 dark:bg-orange-900/30",
-      badgeColor: "bg-orange-500",
+      label: "Déchargé",
+      color: "text-teal-700 dark:text-teal-300",
+      bgColor: "bg-teal-100 dark:bg-teal-900/30",
+      badgeColor: "bg-teal-500",
       icon: Package,
     },
     EN_ATTENTE_HYGIENE: {
@@ -113,7 +129,7 @@ export function ToursClient({ tours }: ToursClientProps) {
     },
     {
       label: "En cours",
-      value: tours.filter(t => ['EN_TOURNEE', 'PRET_A_PARTIR'].includes(t.statut)).length,
+      value: tours.filter(t => ['EN_TOURNEE', 'PRET_A_PARTIR', 'RETOUR'].includes(t.statut)).length,
       icon: Activity,
       color: "bg-purple-500",
     },

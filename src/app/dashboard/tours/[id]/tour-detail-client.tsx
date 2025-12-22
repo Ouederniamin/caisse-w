@@ -48,9 +48,11 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
 type TourStatus = 
-  | "PREPARATION"
+  | "PESEE_VIDE"
+  | "EN_CHARGEMENT"
   | "PRET_A_PARTIR"
   | "EN_TOURNEE"
+  | "RETOUR"
   | "EN_ATTENTE_DECHARGEMENT"
   | "EN_ATTENTE_HYGIENE"
   | "TERMINEE";
@@ -68,6 +70,7 @@ interface Tour {
   poids_brut_securite_retour: number | null;
   poids_tare_securite: number | null;
   poids_net_total_calcule: number | null;
+  poids_a_vide: number | null;
   photo_preuve_depart_url: string | null;
   photo_preuve_retour_url: string | null;
   photos_hygiene_urls: string[];
@@ -75,6 +78,7 @@ interface Tour {
   statut_hygiene: string | null;
   matricule_verifie_sortie: boolean;
   matricule_verifie_retour: boolean;
+  date_pesee_vide: Date | string | null;
   date_sortie_securite: Date | string | null;
   date_entree_securite: Date | string | null;
   date_sortie_finale: Date | string | null;
@@ -235,11 +239,18 @@ function PhotoViewer({ url, alt }: { url: string; alt: string }) {
 
 export function TourDetailClient({ tour }: TourDetailClientProps) {
   const statusConfig = useMemo(() => ({
-    PREPARATION: {
-      label: "Préparation",
+    PESEE_VIDE: {
+      label: "Pesée à vide",
       color: "text-gray-700 dark:text-gray-300",
       bgColor: "bg-gray-100 dark:bg-gray-700",
       badgeColor: "bg-gray-500",
+      icon: Package,
+    },
+    EN_CHARGEMENT: {
+      label: "En chargement",
+      color: "text-amber-700 dark:text-amber-300",
+      bgColor: "bg-amber-100 dark:bg-amber-900/30",
+      badgeColor: "bg-amber-500",
       icon: Package,
     },
     PRET_A_PARTIR: {
@@ -256,11 +267,18 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
       badgeColor: "bg-purple-500",
       icon: Activity,
     },
+    RETOUR: {
+      label: "Retour usine",
+      color: "text-violet-700 dark:text-violet-300",
+      bgColor: "bg-violet-100 dark:bg-violet-900/30",
+      badgeColor: "bg-violet-500",
+      icon: TruckIcon,
+    },
     EN_ATTENTE_DECHARGEMENT: {
-      label: "Attente déchargement",
-      color: "text-orange-700 dark:text-orange-300",
-      bgColor: "bg-orange-100 dark:bg-orange-900/30",
-      badgeColor: "bg-orange-500",
+      label: "Déchargé",
+      color: "text-teal-700 dark:text-teal-300",
+      bgColor: "bg-teal-100 dark:bg-teal-900/30",
+      badgeColor: "bg-teal-500",
       icon: Package,
     },
     EN_ATTENTE_HYGIENE: {
@@ -293,17 +311,17 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
     ? tour.nbre_caisses_depart - tour.nbre_caisses_retour 
     : null;
 
-  // Determine timeline steps completion
+  // Determine timeline steps completion for new flow
   const steps = [
     { 
-      key: 'preparation',
-      title: 'Préparation',
-      statuses: ['PREPARATION'],
+      key: 'pesee_vide',
+      title: 'Pesée à vide',
+      statuses: ['PESEE_VIDE'],
     },
     { 
-      key: 'ready',
-      title: 'Prêt à partir',
-      statuses: ['PRET_A_PARTIR'],
+      key: 'chargement',
+      title: 'Chargement',
+      statuses: ['EN_CHARGEMENT', 'PRET_A_PARTIR'],
     },
     { 
       key: 'tournee',
@@ -311,14 +329,14 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
       statuses: ['EN_TOURNEE'],
     },
     { 
-      key: 'dechargement',
-      title: 'Déchargement',
-      statuses: ['EN_ATTENTE_DECHARGEMENT'],
+      key: 'retour',
+      title: 'Retour usine',
+      statuses: ['RETOUR'],
     },
     { 
-      key: 'hygiene',
-      title: 'Contrôle hygiène',
-      statuses: ['EN_ATTENTE_HYGIENE'],
+      key: 'dechargement',
+      title: 'Déchargement',
+      statuses: ['EN_ATTENTE_DECHARGEMENT', 'EN_ATTENTE_HYGIENE'],
     },
     { 
       key: 'terminee',
@@ -489,15 +507,34 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
             <CardContent>
               <div className="space-y-0">
                 <TimelineStep
-                  title="Préparation"
-                  description={format(new Date(tour.createdAt), "dd/MM/yyyy HH:mm", { locale: fr })}
-                  isActive={tour.statut === 'PREPARATION'}
+                  title="Pesée à vide"
+                  description={tour.date_pesee_vide 
+                    ? format(new Date(tour.date_pesee_vide), "dd/MM/yyyy HH:mm", { locale: fr })
+                    : format(new Date(tour.createdAt), "dd/MM/yyyy HH:mm", { locale: fr })
+                  }
+                  isActive={tour.statut === 'PESEE_VIDE'}
                   isCompleted={currentStepIndex > 0}
+                  icon={Scale}
+                  details={
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <p>Poids à vide: {tour.poids_a_vide ? `${tour.poids_a_vide} kg` : 'N/A'}</p>
+                    </div>
+                  }
+                />
+
+                <TimelineStep
+                  title="Chargement"
+                  description={tour.date_sortie_securite 
+                    ? format(new Date(tour.date_sortie_securite), "dd/MM/yyyy HH:mm", { locale: fr })
+                    : null
+                  }
+                  isActive={['EN_CHARGEMENT', 'PRET_A_PARTIR'].includes(tour.statut)}
+                  isCompleted={currentStepIndex > 1}
                   icon={ClipboardCheck}
                   details={
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       <p>Agent: {tour.agentControle?.name || tour.agentControle?.email || 'N/A'}</p>
-                      <p>{tour.nbre_caisses_depart} caisses • {tour.poids_net_produits_depart} kg</p>
+                      <p>{tour.nbre_caisses_depart ? `${tour.nbre_caisses_depart} caisses` : 'N/A'} • {tour.poids_net_produits_depart ? `${tour.poids_net_produits_depart} kg` : ''}</p>
                     </div>
                   }
                 />
@@ -508,8 +545,8 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
                     ? format(new Date(tour.date_sortie_securite), "dd/MM/yyyy HH:mm", { locale: fr })
                     : null
                   }
-                  isActive={tour.statut === 'PRET_A_PARTIR'}
-                  isCompleted={currentStepIndex > 1}
+                  isActive={tour.statut === 'EN_TOURNEE'}
+                  isCompleted={currentStepIndex > 2}
                   icon={Scale}
                   details={tour.poids_brut_securite_sortie && (
                     <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -529,53 +566,74 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
                   title="En Tournée"
                   description={null}
                   isActive={tour.statut === 'EN_TOURNEE'}
-                  isCompleted={currentStepIndex > 2}
+                  isCompleted={currentStepIndex > 3}
                   icon={TruckIcon}
                 />
 
                 <TimelineStep
-                  title="Pesée Retour"
+                  title="Retour usine"
                   description={tour.date_entree_securite 
                     ? format(new Date(tour.date_entree_securite), "dd/MM/yyyy HH:mm", { locale: fr })
                     : null
                   }
-                  isActive={tour.statut === 'EN_ATTENTE_DECHARGEMENT'}
-                  isCompleted={currentStepIndex > 3}
-                  icon={Scale}
-                  details={(tour.poids_brut_securite_retour || tour.poids_tare_securite) && (
+                  isActive={tour.statut === 'RETOUR'}
+                  isCompleted={currentStepIndex > 4}
+                  icon={TruckIcon}
+                  details={tour.date_entree_securite && (
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {tour.poids_brut_securite_retour && <p>Poids brut: {tour.poids_brut_securite_retour} kg</p>}
-                      {tour.poids_tare_securite && <p>Poids tare: {tour.poids_tare_securite} kg</p>}
-                      {tour.poids_net_total_calcule && <p>Poids net: {tour.poids_net_total_calcule} kg</p>}
-                      {tour.securiteEntree && <p>Agent: {tour.securiteEntree.name || tour.securiteEntree.email}</p>}
+                      <p>Arrivée marquée par sécurité</p>
                     </div>
                   )}
                 />
 
                 <TimelineStep
-                  title="Contrôle Hygiène"
-                  description={null}
-                  isActive={tour.statut === 'EN_ATTENTE_HYGIENE'}
-                  isCompleted={tour.statut === 'TERMINEE' && tour.agentHygiene !== null}
-                  icon={Leaf}
-                  details={tour.agentHygiene && (
+                  title="Déchargement"
+                  description={tour.nbre_caisses_retour !== null 
+                    ? `${tour.nbre_caisses_retour} caisses retournées`
+                    : null
+                  }
+                  isActive={['EN_ATTENTE_DECHARGEMENT', 'EN_ATTENTE_HYGIENE'].includes(tour.statut)}
+                  isCompleted={currentStepIndex > 4}
+                  icon={Package}
+                  details={tour.nbre_caisses_retour !== null && (
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      <p>Agent: {tour.agentHygiene.name || tour.agentHygiene.email}</p>
-                      {tour.statut_hygiene && (
-                        <Badge 
-                          variant="outline" 
-                          className={`mt-1 ${tour.statut_hygiene === 'APPROUVE' 
-                            ? 'text-green-600 dark:text-green-400 border-green-300' 
-                            : 'text-red-600 dark:text-red-400 border-red-300'
-                          }`}
-                        >
-                          {tour.statut_hygiene === 'APPROUVE' ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
-                          {tour.statut_hygiene}
+                      <p>Départ: {tour.nbre_caisses_depart} • Retour: {tour.nbre_caisses_retour}</p>
+                      {caisseDifference !== null && caisseDifference > 0 && (
+                        <Badge variant="outline" className="mt-1 text-orange-600 dark:text-orange-400 border-orange-300">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {caisseDifference} caisse(s) manquante(s)
                         </Badge>
                       )}
                     </div>
                   )}
                 />
+
+                {tour.agentHygiene && (
+                  <TimelineStep
+                    title="Contrôle Hygiène"
+                    description={null}
+                    isActive={tour.statut === 'EN_ATTENTE_HYGIENE'}
+                    isCompleted={tour.statut === 'TERMINEE' && tour.agentHygiene !== null}
+                    icon={Leaf}
+                    details={
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <p>Agent: {tour.agentHygiene.name || tour.agentHygiene.email}</p>
+                        {tour.statut_hygiene && (
+                          <Badge 
+                            variant="outline" 
+                            className={`mt-1 ${tour.statut_hygiene === 'APPROUVE' 
+                              ? 'text-green-600 dark:text-green-400 border-green-300' 
+                              : 'text-red-600 dark:text-red-400 border-red-300'
+                            }`}
+                          >
+                            {tour.statut_hygiene === 'APPROUVE' ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
+                            {tour.statut_hygiene}
+                          </Badge>
+                        )}
+                      </div>
+                    }
+                  />
+                )}
 
                 <TimelineStep
                   title="Terminée"

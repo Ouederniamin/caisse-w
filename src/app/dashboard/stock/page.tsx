@@ -15,6 +15,22 @@ export default async function StockPage() {
       user: { select: { id: true, name: true } }
     },
     orderBy: { createdAt: 'desc' },
+    take: 100
+  });
+  
+  // Fetch pertes (conflicts)
+  const pertes = await prisma.conflict.findMany({
+    include: {
+      tour: {
+        select: {
+          id: true,
+          matricule_vehicule: true,
+          driver: { select: { nom_complet: true } },
+          secteur: { select: { nom: true } }
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
     take: 50
   });
   
@@ -22,7 +38,7 @@ export default async function StockPage() {
   const toursActifs = await prisma.tour.findMany({
     where: {
       statut: {
-        in: ['EN_TOURNEE', 'EN_ATTENTE_DECHARGEMENT', 'EN_ATTENTE_HYGIENE']
+        in: ['EN_TOURNEE', 'PRET_A_PARTIR', 'EN_ATTENTE_DECHARGEMENT', 'EN_ATTENTE_HYGIENE', 'RETOUR']
       }
     },
     select: {
@@ -32,16 +48,17 @@ export default async function StockPage() {
   });
   
   const stockEnTournee = toursActifs.reduce((sum, tour) => {
-    return sum + tour.nbre_caisses_depart - (tour.nbre_caisses_retour || 0);
+    return sum + (tour.nbre_caisses_depart || 0) - (tour.nbre_caisses_retour || 0);
   }, 0);
   
   // Calculate losses
   const pertesConfirmees = await prisma.conflict.aggregate({
     where: { statut: 'RESOLUE' },
-    _sum: { quantite_perdue: true, caisses_retournees: true }
+    _sum: { quantite_perdue: true, caisses_retournees: true, montant_paye: true }
   });
   
   const stockPerdu = (pertesConfirmees._sum.quantite_perdue || 0) - (pertesConfirmees._sum.caisses_retournees || 0);
+  const totalPertesPayees = pertesConfirmees._sum.montant_paye || 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -57,8 +74,10 @@ export default async function StockPage() {
           <StockClient 
             stock={stock}
             mouvements={mouvements}
+            pertes={pertes}
             stockEnTournee={stockEnTournee}
             stockPerdu={stockPerdu}
+            totalPertesPayees={totalPertesPayees}
           />
         </div>
       </ScrollArea>
