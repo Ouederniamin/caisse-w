@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Eye
 } from "lucide-react";
 import { format, startOfDay, endOfDay, subDays, isWithinInterval } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -624,12 +626,13 @@ export function StockClient({ stock, mouvements, pertes, stockEnTournee, stockPe
                       <TableHead className="text-center">Solde</TableHead>
                       <TableHead>Référence</TableHead>
                       <TableHead>Notes</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedMouvements.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                           <History className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                           Aucun mouvement trouvé
                         </TableCell>
@@ -676,6 +679,25 @@ export function StockClient({ stock, mouvements, pertes, stockEnTournee, stockPe
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                               {mvt.notes || "—"}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {mvt.type === 'DEPART_TOURNEE' && mvt.tour ? (
+                                <Link href={`/dashboard/tours/${mvt.tour.id}`}>
+                                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-blue-600 hover:text-blue-700">
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Voir
+                                  </Button>
+                                </Link>
+                              ) : (mvt.type === 'PERTE_CONFIRMEE' || mvt.type === 'RECUPERATION') && mvt.conflict ? (
+                                <Link href={`/dashboard/conflits/${mvt.conflict.id}`}>
+                                  <Button variant="ghost" size="sm" className="h-7 gap-1 text-red-600 hover:text-red-700">
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Voir
+                                  </Button>
+                                </Link>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
@@ -821,12 +843,13 @@ export function StockClient({ stock, mouvements, pertes, stockEnTournee, stockPe
                       <TableHead className="text-center">Retournées</TableHead>
                       <TableHead className="text-center">Montant</TableHead>
                       <TableHead>Statut</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pertes.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                           <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-400" />
                           Aucune perte enregistrée
                         </TableCell>
@@ -869,6 +892,14 @@ export function StockClient({ stock, mouvements, pertes, stockEnTournee, stockPe
                               {perte.statut === 'RESOLUE' ? 'Résolue' : 
                                perte.statut === 'EN_ATTENTE' ? 'En attente' : perte.statut}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Link href={`/dashboard/conflits/${perte.id}`}>
+                              <Button variant="ghost" size="sm" className="h-7 gap-1 text-blue-600 hover:text-blue-700">
+                                <Eye className="h-3.5 w-3.5" />
+                                Voir
+                              </Button>
+                            </Link>
                           </TableCell>
                         </TableRow>
                       ))
