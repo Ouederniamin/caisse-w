@@ -390,6 +390,76 @@ export function ConflictDetailClient({ conflict }: ConflictDetailClientProps) {
         </Card>
       )}
 
+      {/* Resolution Summary Card - For resolved conflicts */}
+      {!isPending && (
+        <Card className="border-none shadow-lg dark:bg-gray-800/50 border-2 border-green-300 dark:border-green-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle className="h-5 w-5" />
+              Résolution du Conflit
+            </CardTitle>
+            <CardDescription>
+              Ce conflit a été résolu le {conflict.date_approbation_direction 
+                ? format(new Date(conflict.date_approbation_direction), "dd MMMM yyyy 'à' HH:mm", { locale: fr })
+                : format(new Date(conflict.updatedAt), "dd MMMM yyyy 'à' HH:mm", { locale: fr })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Resolution Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {conflict.caisses_retournees > 0 && (
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ArrowUpCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-700 dark:text-green-400">Caisses Retournées</span>
+                  </div>
+                  <p className="text-3xl font-bold text-green-600">{conflict.caisses_retournees}</p>
+                  <p className="text-sm text-green-600/70">sur {conflict.quantite_perdue} perdues</p>
+                </div>
+              )}
+              
+              {conflict.montant_paye > 0 && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Banknote className="h-5 w-5 text-blue-600" />
+                    <span className="font-semibold text-blue-700 dark:text-blue-400">Montant Payé</span>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-600">{conflict.montant_paye.toFixed(2)} <span className="text-lg">TND</span></p>
+                  <p className="text-sm text-blue-600/70">sur {conflict.montant_dette_tnd.toFixed(2)} TND</p>
+                </div>
+              )}
+              
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="h-5 w-5 text-gray-600" />
+                  <span className="font-semibold text-gray-700 dark:text-gray-400">Mode de Résolution</span>
+                </div>
+                <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  {conflict.caisses_retournees > 0 && conflict.montant_paye > 0 
+                    ? "Mixte (Retour + Paiement)"
+                    : conflict.caisses_retournees > 0 
+                      ? "Retour de Caisses"
+                      : conflict.montant_paye > 0
+                        ? "Paiement"
+                        : "Non spécifié"}
+                </p>
+                {conflict.notes_direction && (
+                  <p className="text-sm text-gray-500 mt-2 italic">"{conflict.notes_direction}"</p>
+                )}
+              </div>
+            </div>
+
+            {/* Completion indicator */}
+            <div className="flex items-center justify-center p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <CheckCircle className="h-6 w-6 text-green-600 mr-2" />
+              <span className="text-green-700 dark:text-green-400 font-semibold">
+                Conflit entièrement résolu
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-none shadow-lg dark:bg-gray-800/50">
