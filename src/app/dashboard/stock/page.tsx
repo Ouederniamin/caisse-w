@@ -51,9 +51,9 @@ export default async function StockPage() {
     return sum + (tour.nbre_caisses_depart || 0) - (tour.nbre_caisses_retour || 0);
   }, 0);
   
-  // Calculate losses
+  // Calculate losses - include both RESOLUE and PAYEE statuses
   const pertesConfirmees = await prisma.conflict.aggregate({
-    where: { statut: 'RESOLUE' },
+    where: { statut: { in: ['RESOLUE', 'PAYEE'] } },
     _sum: { quantite_perdue: true, caisses_retournees: true, montant_paye: true }
   });
   

@@ -114,6 +114,12 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       icon: FileText,
       showForDirection: false,
     },
+    {
+      title: "Paramètres",
+      href: "/dashboard/parametres",
+      icon: Settings,
+      showForDirection: true,
+    },
   ].filter(item => isAdmin || item.showForDirection);
 
   const handleSignOut = async () => {
