@@ -91,7 +91,7 @@ export default async function DriverDetailPage({
 
     // Get last poids à vide from tours (most recent tour with poids_a_vide set)
     const lastTourWithPoids = driver.tours.find(t => t.poids_a_vide !== null && t.poids_a_vide !== undefined);
-    const lastPoidsAVide = lastTourWithPoids ? {
+    const lastPoidsAVide = lastTourWithPoids && lastTourWithPoids.poids_a_vide !== null ? {
       poids: lastTourWithPoids.poids_a_vide,
       date: lastTourWithPoids.createdAt,
     } : null;
