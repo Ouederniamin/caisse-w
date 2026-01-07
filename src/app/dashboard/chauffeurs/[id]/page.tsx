@@ -34,6 +34,7 @@ export default async function DriverDetailPage({
             matricule_vehicule: true,
             nbre_caisses_depart: true,
             nbre_caisses_retour: true,
+            poids_a_vide: true,
             createdAt: true,
             secteur: {
               select: {
@@ -88,6 +89,13 @@ export default async function DriverDetailPage({
     // Get unique sectors worked
     const uniqueSectors = new Set(driver.tours.filter(t => t.secteur).map(t => t.secteur!.nom));
 
+    // Get last poids à vide from tours (most recent tour with poids_a_vide set)
+    const lastTourWithPoids = driver.tours.find(t => t.poids_a_vide !== null && t.poids_a_vide !== undefined);
+    const lastPoidsAVide = lastTourWithPoids ? {
+      poids: lastTourWithPoids.poids_a_vide,
+      date: lastTourWithPoids.createdAt,
+    } : null;
+
     const driverStats = {
       thisMonth: {
         tours: thisMonthTours.length,
@@ -118,7 +126,7 @@ export default async function DriverDetailPage({
           ]}
         />
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <DriverDetailClient driver={driver} stats={driverStats} />
+          <DriverDetailClient driver={driver} stats={driverStats} lastPoidsAVide={lastPoidsAVide} />
         </div>
       </>
     );
