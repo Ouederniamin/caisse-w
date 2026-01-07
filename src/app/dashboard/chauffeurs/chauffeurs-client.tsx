@@ -354,9 +354,8 @@ export function ChauffeursClient({ drivers }: ChauffeursClientProps) {
                             {driver.poids_tare_vehicule.toLocaleString()} kg
                           </Badge>
                         ) : (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Non configuré
+                          <Badge variant="secondary" className="text-xs">
+                            —
                           </Badge>
                         )}
                       </TableCell>

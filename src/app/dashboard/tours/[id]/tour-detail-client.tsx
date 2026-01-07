@@ -979,10 +979,10 @@ export function TourDetailClient({ tour }: TourDetailClientProps) {
                   </div>
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
-                      Tare Véhicule
+                      Poids à Vide (Tare)
                     </p>
                     <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      {tour.poids_tare_securite ?? "—"} {tour.poids_tare_securite && <span className="text-sm font-normal text-gray-500">kg</span>}
+                      {tour.poids_a_vide ?? tour.poids_tare_securite ?? "—"} {(tour.poids_a_vide || tour.poids_tare_securite) && <span className="text-sm font-normal text-gray-500">kg</span>}
                     </p>
                   </div>
                 </div>

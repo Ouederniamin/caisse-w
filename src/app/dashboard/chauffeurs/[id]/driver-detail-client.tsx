@@ -239,15 +239,15 @@ export function DriverDetailClient({ driver, stats }: DriverDetailClientProps) {
                 )}
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1"><Scale className="h-3 w-3" />Poids Tare (kg)</Label>
+                <Label className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1"><Scale className="h-3 w-3" />Poids Tare Véhicule (kg)</Label>
                 {isEditing ? (
                   <Input type="number" step="0.01" min="0" value={editForm.poids_tare_vehicule} onChange={(e) => setEditForm({ ...editForm, poids_tare_vehicule: e.target.value })} placeholder="Ex: 3500" />
                 ) : driver.poids_tare_vehicule ? (
                   <Badge variant="outline" className="text-base px-3 py-1">{driver.poids_tare_vehicule.toLocaleString()} kg</Badge>
                 ) : (
-                  <Badge variant="destructive" className="text-sm"><AlertCircle className="h-3 w-3 mr-1" />Non configuré</Badge>
+                  <Badge variant="secondary" className="text-sm">Non défini</Badge>
                 )}
-                {!isEditing && !driver.poids_tare_vehicule && <p className="text-xs text-orange-600 dark:text-orange-400">Requis pour validation des pesées</p>}
+                <p className="text-xs text-gray-500 dark:text-gray-400">Optionnel - Le poids à vide est mesuré à chaque tournée</p>
               </div>
             </div>
             <Separator className="my-6" />
